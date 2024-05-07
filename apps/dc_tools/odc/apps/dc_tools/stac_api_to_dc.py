@@ -42,7 +42,7 @@ def _parse_options(options: Optional[str]) -> Dict[str, Any]:
     if options is not None:
         for option in options.split("#"):
             try:
-                key, value = option.split("=")
+                key, value = option.split("=",1)
 
                 try:
                     value = json.loads(value)
@@ -156,7 +156,7 @@ def stac_api_to_odc(
 ) -> Tuple[int, int, int]:
     doc2ds = Doc2Dataset(dc.index)
     client = Client.open(catalog_href)
-
+    print(f'CONFIG: {config}')
     search = client.search(**config)
     n_items = search.matched()
     if n_items is not None:
@@ -266,7 +266,7 @@ def cli(
     """
     Iterate through STAC items from a STAC API and add them to datacube.
     """
-    config = _parse_options(options)
+    config = {}
     rewrite = None
 
     # Format the search terms
@@ -278,11 +278,14 @@ def cli(
 
     if datetime:
         config["datetime"] = datetime
-
+    
+    if options:
+        key, value = options.split("=")
+        config.setdefault('query', {}).setdefault(key,{}).setdefault("eq",value)
+        print(config)
     # Always set the limit, because some APIs will stop at an arbitrary
     # number if max_items is not None.
     config["max_items"] = limit
-
     if rewrite_assets is not None:
         rewrite = list(rewrite_assets.split(","))
         if len(rewrite) != 2:
